@@ -1,0 +1,100 @@
+~[frame_type:none]<!DOCTYPE html>
+<html>
+<head>
+<title>Records : Upload History</title>
+<link href="/images/css/screen.css" rel="stylesheet" media="screen">
+<link href="/images/css/print.css" rel="stylesheet" media="print">
+
+<link rel="stylesheet" href="//cdn.psd1.org/css/jqueryui/1.12.1/jqueryui.min.css"></script>
+<link rel="stylesheet" href="//cdn.psd1.org/fonts/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="//cdn.psd1.org/css/jqueryui/1.12.1/jqueryui.min.css"></script>
+~[wc:commonscripts]
+<link rel="stylesheet" href="/admin/discipline/css/bootstrap.min.css">
+<link rel="stylesheet" href="/admin/discipline/css/bootstrap-theme.min.css">
+<style>
+    th {
+        background-color: transparent;
+    }
+    
+    .err {
+        background-color: #f7b9b9;
+    }
+</style>
+</head>
+
+<body>
+~[wc:admin_header_css]<!-- breadcrumb tag starts in header_css -->
+~[wc:admin_navigation_css]
+
+<!-- start of search menu -->
+
+<div class="container">
+	<div class="row">
+		<div class="col-md-12">
+		    <h1>Upload History</h1>
+		    <table class="table upload-history">
+		        <thead>
+    		        <tr>
+    		            <th>Date</th>
+    		            <th>Name</th>
+    		            <th>School</th>
+    		            <th>In Process</th>
+    		            <th>Documents Processed</th>
+    		            <th>Error</th>
+    		            <th>Upload ID</th>
+    		        </tr>
+		        </thead>
+		        <tbody>
+		        </tbody>
+		    </table>
+
+		</div>
+    </div>
+</div>
+~[wc:admin_footer_css]
+
+<script>
+$j(document).ready(function(){
+
+    //default to district-level data, if school is selected, return filtered results from API
+    let url = `${api_url}/miscuploader/tracking/all`;
+    if('~(curschoolid)' !== '0') {
+        url = `${api_url}/miscuploader/tracking/~(curschoolid)`;
+    }
+    
+    //create object to translate school number to school name:
+    let schoolLookup = new Map([
+        ~[tlist_sql; SELECT school_number, name FROM schools WHERE school_number NOT IN (16, 1111,180, 1969, 1970, 2692, 5177, 9500, 999999) ORDER BY name]
+                ["~(school_number)", "~(school_name)"],
+        [/tlist_sql]
+        []
+    ]);
+
+    //grab data from API, loop through results and drop it into a table    
+    $j.ajax({
+        url : url,
+        success : function(res) {
+            let data = JSON.parse(res);
+            data.forEach(function(item){
+                let msg = `
+                    <tr>
+                        <td>${item.upload_date}</td>
+                        <td>${item.file_name}</td>
+                        <td>${schoolLookup.get(item.schoolid)}</td>
+                        <td>${item.inprocess}</td>
+                        <td>${item.complete}</td>
+                        <td ${(item.errors) ? 'class="err"' : '' }>${(item.errors) ? 'Error' : '' }</td>
+                        <td>${item.qfuploadname}</td>
+                    </tr>
+                `;
+                $j('.upload-history tbody').append(msg);
+            })
+        },
+        error : function(err) {
+            console.log(err);
+        }
+    })
+})
+</script>
+</body>
+</html>
